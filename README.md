@@ -80,6 +80,7 @@ To ensure the pipeline is functioning correctly, follow these steps in order:
 &nbsp;  python generator.py         Step 1: Generate telemetry logs
 
 &nbsp;  python recovery\_engine.py   Step 2: Process logs and apply logic
+
 3. Validate with Unit Tests:
 
 &nbsp;  ```bash

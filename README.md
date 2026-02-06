@@ -51,5 +51,5 @@ Project Structure
 
 Impact \& Use Case
 
-This architecture mimics systems used at scale by automotive and IoT leaders. By automating the recovery of "Partial" states, the system demonstrates a theoretical 90% reduction in manual configuration time for fleet engineers.
+This architecture mimics systems used at scale by automotive and IoT leaders. By automating the recovery of "Partial" states, the system demonstrates a theoretical 75% reduction in manual configuration time for fleet engineers.
 

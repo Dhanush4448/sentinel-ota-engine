@@ -1,89 +1,50 @@
-&nbsp;Sentinel OTA Engine: Fleet Reliability \& Recovery Pipeline 
+Sentinel OTA Engine: Resilient Fleet Recovery Pipeline
+The Sentinel OTA Engine is a high-throughput data engineering pipeline designed to automate the recovery of Over-the-Air (OTA) firmware failures for a global fleet of 10,000+ IoT devices.
 
+Key Architectural Upgrades
+This project has been engineered to go beyond basic scripting, implementing "Senior-level" system design principles:
 
+Parallel Sharding: Utilizes Python's ProcessPoolExecutor to bypass the GIL, sharding the fleet into parallel streams for high-throughput processing.
 
-Project Overview:
+Database-First Persistence: Replaced legacy CSV handling with a relational SQLite backend, utilizing SQL Window Functions (RANK, PARTITION BY) for regional bottleneck analysis.
 
-The Sentinel OTA Engine is an end-to-end data engineering and automation pipeline designed to manage Over-the-Air (OTA) firmware deployments for a global fleet of 10,000+ IoT devices. 
+Chaos Engineering: Includes a custom chaos_injector.py suite that simulates real-world data corruption (NULL values, type mismatches, and out-of-bounds telemetry).
 
+Data Sanitization & Resilience: Implemented robust sanitization using pandas to quarantine corrupted data into a "Manual Triage" queue without halting the pipeline.
 
+Live Observability: Integrated a real-time CLI dashboard using the rich library to monitor processing speed and shard health.
 
-This project addresses a critical industry pain point: Partial Update Failures. Instead of manual troubleshooting, this system automates the detection and recovery of "bricked" or "partially updated" devices using telemetry-driven logic.
+Tech Stack
+Language: Python 3.12 (Pandas, Concurrent.Futures, Faker)
 
+Database: SQLite3 (Relational persistence & CTE analysis)
 
+DevOps: Docker (Containerization), Unit Testing (Negative & Positive testing)
 
-System Architecture:
+Observability: Rich (CLI Dashboards)
 
-1. Telemetry Generation: A Python-based engine simulates real-world device behavior, including battery health, signal strength, and firmware versioning.
+System Structure
+generator.py: Injects 10k telemetry records into the SQL database.
 
-2\. Analytical Layer: Utilizes SQL CTEs and Window Functions to rank regional deployment bottlenecks and identify failure clusters.
+chaos_injector.py: Simulates "Dirty Data" by corrupting the database state.
 
-3\. Automated Recovery: A decision-making controller that triggers Retries or Rollbacks based on edge-case telemetry (e.g., preventing a   rollback if battery voltage is too low).
+recovery_engine.py: The high-speed parallel controller that cleans and fixes the fleet.
 
+test_sentinel.py: Advanced test suite validating base integrity and chaos resilience.
 
+How to Run & Validate
+Follow the "Full Gauntlet" to see the resilience in action:
 
-Tech Stack \& Skills
+Initialize & Corrupt:
 
-* Language: Python 3.12 (Pandas, Faker)
-* Data Engineering: SQL (GCP BigQuery syntax), CTEs, Window Functions (RANK(), PARTITION BY)
-* DevOps/CI: Git Hygiene, Virtual Environments (`venv`), Unit Testing
-* Concepts: IoT Fleet Management, OTA Workflows, Incident Automation
+Bash
+python generator.py      # Create clean fleet data
+python chaos_injector.py # Intentionally break data integrity
+Execute Parallel Recovery:
 
+Bash
+python recovery_engine.py
+Validate Resilience:
 
-
-Key Features
-
-* Synthetic Fleet Simulation: Generates 10,000+ records with regional failure biases to test scalability.
-* Edge-Case Recovery: Implements logic to handle "Partially Updated" states—the most complex failure in OTA deployments.
-
-\*  Reliability Dashboarding: Structured SQL queries ready for visualization in tools like Looker Studio or Tableau.
-
-
-
-Project Structure
-
-* generator.py: The heart of the data pipeline; creates the synthetic telemetry dataset.
-* recovery\_engine.py: The automation controller that processes logs and decides on recovery actions.
-* analysis\_queries.sql: Advanced SQL for identifying fleet-wide trends.
-* test\_engine.py: Basic unit tests to ensure recovery logic integrity.
-
-
-
-Impact \& Use Case
-
-This architecture mimics systems used at scale by automotive and IoT leaders. By automating the recovery of "Partial" states, the system demonstrates a theoretical 75% reduction in manual configuration time for fleet engineers.
-
-How to Run \& Validate
-
-
-
-To ensure the pipeline is functioning correctly, follow these steps in order:
-
-
-
-1. Setup Environment:
-
-&nbsp;  ```bash
-
-&nbsp;  python -m venv venv
-
-&nbsp;  source venv/bin/activate
-
-&nbsp;  On Windows: venv\\Scripts\\activate
-
-&nbsp;  pip install -r requirements.txt
-
-2\. Run the Pipeline: 
-
-&nbsp;  ```bash
-
-&nbsp;  python generator.py         Step 1: Generate telemetry logs
-
-&nbsp;  python recovery\_engine.py   Step 2: Process logs and apply logic
-
-3. Validate with Unit Tests:
-
-&nbsp;  ```bash
-
-&nbsp;  python test\_sentinel.py
-
+Bash
+python test_sentinel.py  # Confirms that 'dirty' data was quarantined, not crash

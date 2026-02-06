@@ -8,21 +8,33 @@ from rich.console import Console
 console = Console()
 
 def process_device_batch(batch):
-    # Simulate a tiny bit of work so the progress bar is visible
-    time.sleep(0.1) 
-    batch['recovery_action'] = batch['battery_voltage'].apply(
+    """Resilient worker: Cleans corrupted data before processing."""
+    time.sleep(0.1) # Simulate network latency
+    
+    # 1. Convert battery_voltage to numeric, turning 'UNKNOWN' or garbled text into NaN (Not a Number)
+    batch['battery_voltage'] = pd.to_numeric(batch['battery_voltage'], errors='coerce')
+    
+    # 2. Identify corrupted rows (NaN or NULL)
+    is_corrupted = batch['battery_voltage'].isna()
+    
+    # 3. Apply recovery logic ONLY to valid rows
+    # We use a safe lambda that handles the comparison
+    batch.loc[~is_corrupted, 'recovery_action'] = batch.loc[~is_corrupted, 'battery_voltage'].apply(
         lambda x: 'RETRY_UPDATE' if x > 12.5 else 'FORCE_ROLLBACK'
     )
+    
+    # 4. Quarantine corrupted rows for Manual Triage
+    batch.loc[is_corrupted, 'recovery_action'] = 'MANUAL_TRIAGE'
+    
     return batch
-
 def run_parallel_recovery():
-    console.print("[bold cyan]🚀 Sentinel High-Throughput Engine[/bold cyan] | [yellow]Mode: Parallel Sharding[/yellow]")
+    console.print("[bold cyan]Sentinel High-Throughput Engine[/bold cyan] | [yellow]Mode: Parallel Sharding[/yellow]")
     
     conn = sqlite3.connect('fleet.db')
     df_to_fix = pd.read_sql_query("SELECT * FROM ota_logs WHERE update_status = 'Partial'", conn)
     
     if df_to_fix.empty:
-        console.print("[bold green]✅ Fleet is healthy. No actions required.[/bold green]")
+        console.print("[bold green]Fleet is healthy. No actions required.[/bold green]")
         return
 
     num_shards = 4
@@ -55,8 +67,8 @@ def run_parallel_recovery():
     duration = round(time.time() - start_time, 4)
     throughput = round(len(df_to_fix)/duration, 2)
 
-    console.print(f"\n[bold green]⚡ Parallel Execution Complete![/bold green]")
-    console.print(f"⏱️  [bold]Time:[/bold] {duration}s | 🚀 [bold]Throughput:[/bold] {throughput} devices/sec\n")
+    console.print(f"\n[bold green]Parallel Execution Complete![/bold green]")
+    console.print(f"[bold]Time:[/bold] {duration}s | [bold]Throughput:[/bold] {throughput} devices/sec\n")
     conn.close()
 
 if __name__ == "__main__":

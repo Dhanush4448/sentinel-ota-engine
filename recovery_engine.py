@@ -1,36 +1,63 @@
 import sqlite3
 import pandas as pd
+from concurrent.futures import ProcessPoolExecutor
+import time
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.console import Console
 
-def run_recovery():
-    print("Sentinel Recovery Engine: Scanning SQL Database...")
-    
-    # Connect to the SQLite database
-    conn = sqlite3.connect('fleet.db')
-    
-    # Load only the devices that need fixing (Filtering at the SQL level is faster!)
-    query = "SELECT * FROM ota_logs WHERE update_status = 'Partial'"
-    df_to_fix = pd.read_sql_query(query, conn)
-    
-    if df_to_fix.empty:
-        print("No 'Partial' states found. Fleet is healthy.")
-        conn.close()
-        return
+console = Console()
 
-    # Logic: Apply the safety gates
-    df_to_fix['recovery_action'] = df_to_fix['battery_voltage'].apply(
+def process_device_batch(batch):
+    # Simulate a tiny bit of work so the progress bar is visible
+    time.sleep(0.1) 
+    batch['recovery_action'] = batch['battery_voltage'].apply(
         lambda x: 'RETRY_UPDATE' if x > 12.5 else 'FORCE_ROLLBACK'
     )
+    return batch
+
+def run_parallel_recovery():
+    console.print("[bold cyan]🚀 Sentinel High-Throughput Engine[/bold cyan] | [yellow]Mode: Parallel Sharding[/yellow]")
     
-    # Save the action report to a database table instead of a CSV
-    df_to_fix.to_sql('recovery_actions', conn, if_exists='replace', index=False)
+    conn = sqlite3.connect('fleet.db')
+    df_to_fix = pd.read_sql_query("SELECT * FROM ota_logs WHERE update_status = 'Partial'", conn)
     
-    # Also save a local CSV for the human-readable report
-    df_to_fix.to_csv("recovery_actions_report.csv", index=False)
+    if df_to_fix.empty:
+        console.print("[bold green]✅ Fleet is healthy. No actions required.[/bold green]")
+        return
+
+    num_shards = 4
+    chunks = [df_to_fix[i::num_shards] for i in range(num_shards)]
     
-    print(f"Success: Processed {len(df_to_fix)} recovery actions.")
-    print("Database Updated: Table 'recovery_actions' is now live.")
+    start_time = time.time()
+
     
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        console=console
+    ) as progress:
+        
+        main_task = progress.add_task("[green]Processing Shards...", total=num_shards)
+        
+        with ProcessPoolExecutor() as executor:
+            futures = [executor.submit(process_device_batch, chunk) for chunk in chunks]
+            results = []
+            for future in futures:
+                results.append(future.result())
+                progress.advance(main_task)
+
+    final_df = pd.concat(results)
+    final_df.to_sql('recovery_actions', conn, if_exists='replace', index=False)
+    
+    duration = round(time.time() - start_time, 4)
+    throughput = round(len(df_to_fix)/duration, 2)
+
+    console.print(f"\n[bold green]⚡ Parallel Execution Complete![/bold green]")
+    console.print(f"⏱️  [bold]Time:[/bold] {duration}s | 🚀 [bold]Throughput:[/bold] {throughput} devices/sec\n")
     conn.close()
 
 if __name__ == "__main__":
-    run_recovery()
+    run_parallel_recovery()

@@ -53,3 +53,36 @@ Impact \& Use Case
 
 This architecture mimics systems used at scale by automotive and IoT leaders. By automating the recovery of "Partial" states, the system demonstrates a theoretical 75% reduction in manual configuration time for fleet engineers.
 
+How to Run \& Validate
+
+
+
+To ensure the pipeline is functioning correctly, follow these steps in order:
+
+
+
+1. Setup Environment:
+
+&nbsp;  ```bash
+
+&nbsp;  python -m venv venv
+
+&nbsp;  source venv/bin/activate
+
+&nbsp;  On Windows: venv\\Scripts\\activate
+
+&nbsp;  pip install -r requirements.txt
+
+2\. Run the Pipeline: 
+
+&nbsp;  ```bash
+
+&nbsp;  python generator.py         Step 1: Generate telemetry logs
+
+&nbsp;  python recovery\_engine.py   Step 2: Process logs and apply logic
+3. Validate with Unit Tests:
+
+&nbsp;  ```bash
+
+&nbsp;  python test\_sentinel.py
+

@@ -1,36 +1,54 @@
-import pandas as pd
-from faker import Faker
+import sqlite3
 import random
+from faker import Faker
 
-fake = Faker()
-
-def generate_fleet_data(records=5000):
-    fleet = []
-    regions = ['North America', 'Europe', 'India', 'South America']
-    statuses = ['Success', 'Failed', 'Partial', 'Pending']
+def generate_fleet_data(num_devices=10000):
+    fake = Faker()
+    db_name = "fleet.db"
     
-    for _ in range(records):
+    print(f"Generating telemetry for {num_devices} devices...")
+    
+    # Connect to (or create) the SQL database
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+
+    # Create a clean table for our logs
+    cursor.execute("DROP TABLE IF EXISTS ota_logs")
+    cursor.execute('''
+        CREATE TABLE ota_logs (
+            device_id TEXT PRIMARY KEY,
+            region TEXT,
+            battery_voltage REAL,
+            signal_strength INTEGER,
+            update_status TEXT
+        )
+    ''')
+
+    regions = ['North America', 'Europe', 'India', 'Middle East', 'Asia-Pacific']
+    fleet_data = []
+
+    for _ in range(num_devices):
+        device_id = f"DEV-{fake.unique.hexify(text='^^^^^^^^')}"
         region = random.choice(regions)
-        # Creating a 'bias' for your analysis: India/Europe have more 'Partial' updates
-        if region in ['India', 'Europe']:
-            status = random.choices(statuses, weights=[40, 10, 40, 10])[0]
+        
+        # Logic: We intentionally lower battery/signal in certain regions to simulate 'Partial' failures
+        if region in ['India', 'Middle East'] and random.random() < 0.35:
+            update_status = "Partial"
+            battery_voltage = round(random.uniform(11.8, 12.4), 2)  # Critical battery
         else:
-            status = random.choices(statuses, weights=[70, 10, 10, 10])[0]
+            update_status = random.choice(["Success", "Success", "Partial"]) # 66% base success
+            battery_voltage = round(random.uniform(12.5, 14.2), 2)
 
-        device_log = {
-            "device_id": fake.uuid4(),
-            "region": region,
-            "firmware_version": f"v{random.randint(1, 3)}.{random.randint(0, 9)}",
-            "battery_voltage": round(random.uniform(11.5, 14.2), 2),
-            "signal_strength": random.randint(-110, -30),
-            "update_status": status,
-            "timestamp": fake.date_time_this_month().isoformat()
-        }
-        fleet.append(device_log)
+        signal_strength = random.randint(10, 100)
+        
+        fleet_data.append((device_id, region, battery_voltage, signal_strength, update_status))
+
+    # Bulk insert for efficiency (Senior move)
+    cursor.executemany('INSERT INTO ota_logs VALUES (?,?,?,?,?)', fleet_data)
     
-    return pd.DataFrame(fleet)
+    conn.commit()
+    conn.close()
+    print(f"Success: {num_devices} records injected into '{db_name}'")
 
 if __name__ == "__main__":
-    df = generate_fleet_data(10000)
-    df.to_csv("ota_logs.csv", index=False)
-    print("✅ Generated 10,000 device logs in ota_logs.csv")
+    generate_fleet_data()

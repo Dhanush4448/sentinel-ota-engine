@@ -1,53 +1,51 @@
 Sentinel OTA Engine: Resilient Fleet Recovery Pipeline
-The Sentinel OTA Engine is a high-throughput data engineering and automation pipeline designed to manage firmware deployment failures across a global fleet of 10,000+ IoT devices.
+The Sentinel OTA Engine is a high-throughput data engineering and automation pipeline designed to manage firmware deployment failures across a global fleet of 10,000+ IoT devices in a distributed cloud environment.
 
-This system moves beyond basic troubleshooting by implementing Chaos Engineering and Parallel Sharding to detect, quarantine, and recover "bricked" or "partially updated" devices at scale.
+Originally a local prototype, this system has been re-engineered for Enterprise Cloud Deployment on Google Cloud Platform (GCP). It utilizes Parallel Sharding and Batch Transaction Logic to detect and recover "partially updated" devices at scale across global regions.
 
 Key Engineering Features
-High-Throughput Parallelism: Utilizes Python’s ProcessPoolExecutor to shard fleet telemetry across multiple CPU cores, achieving processing speeds of 40,000+ devices/sec.
+Cloud-Native Persistence: Migrated the backend from SQLite to a managed Google Cloud SQL (PostgreSQL) instance. Implemented secure CIDR-based firewall whitelisting and remote SSL handshakes for enterprise-grade security.
 
-Relational Persistence: Migrated from flat-file storage to a SQLite backend, enabling advanced SQL Window Functions (RANK, PARTITION BY) for regional bottleneck analysis.
+High-Throughput Parallelism: Utilizes Python’s multiprocessing library to shard fleet telemetry across multiple CPU cores. By establishing independent secure connections for each worker, the engine bypasses the Global Interpreter Lock (GIL) to achieve massive concurrency.
 
-Chaos Engineering Suite: Integrated a custom chaos_injector.py to simulate real-world data corruption (NULL values, type mismatches, and signal drops).
+Resilient "Progressive Batch" Ingestion: Engineered a robust generator.py that handles network latency and socket timeouts by utilizing atomic commits in 500-record chunks, ensuring data integrity across a 10,000-record dataset.
 
-Data Resilience & Triage: Engineered a robust sanitization layer that automatically quarantines corrupted telemetry into a Manual Triage queue without halting the deployment pipeline.
+Automated State Recovery: A parallelized controller that performs targeted cloud updates, transitioning thousands of devices from "Partial" failure to "Recovered" status based on real-time telemetry analysis.
 
-Executive Analytics: Includes a Jupyter Notebook dashboard for regional failure heatmapping and recovery ROI visualization.
+Strategic Cost Management: Implemented a cloud-cost optimization workflow, utilizing activation-policy management and final de-provisioning to maintain a $0.00 project footprint when idle.
 
 Tech Stack
-Backend: Python 3.12 (Pandas, Concurrent.Futures, Faker)
+Cloud Infrastructure: Google Cloud Platform (GCP), Cloud SQL (PostgreSQL)
 
-Database: SQLite3 (CTEs, Window Functions)
+Backend: Python 3.12 (psycopg2-binary, multiprocessing, Faker)
 
-DevOps: Docker (Containerization), Unit Testing (Negative & Positive logic)
+DevOps: GCloud CLI, Network Firewalls (Ingress/Egress rules), Environment Variable Security
 
-Analytics: Jupyter Notebook, Matplotlib, Seaborn
+Analytics: SQL (Window Functions, Aggregations), Matplotlib, Seaborn
 
 Project Structure
-generator.py: Generates 10k synthetic telemetry records into SQL.
+generator.py: Batch-processes 10k synthetic telemetry records into the cloud with progressive progress tracking.
 
-chaos_injector.py: Injects data corruption to test system resilience.
+recovery_engine.py: Multi-core parallel controller that shards the cloud dataset and executes high-speed recovery updates.
 
-recovery_engine.py: Parallelized controller with live rich observability.
+analytics_viz.py: Generates regional heatmaps and deployment success visualizations from live cloud data.
 
-analytics_dashboard.ipynb: Executive reporting and failure visualization.
-
-test_sentinel.py: Automated validation suite for the full pipeline.
+requirements.txt: Manages environment dependencies for secure local-to-cloud communication.
 
 How to Run & Validate
-Follow the "Full Gauntlet" to see the engine's resilience in action:
+GCP Setup: Ensure your Cloud SQL instance is active and your current public IP is whitelisted.
 
-Generate & Corrupt:
+Generate Cloud Fleet:
 
-Bash
-python generator.py
-python chaos_injector.py
+PowerShell
+$env:DB_HOST="YOUR_CLOUD_IP"
+$env:DB_PASS="YOUR_PASSWORD"
+python -m generator
 Execute Parallel Recovery:
 
-Bash
-python recovery_engine.py
-Validate & Analyze:
+PowerShell
+python -m recovery_engine
+Validate & Analyze: Run the following query in Google Cloud Query Studio to confirm the 100% recovery rate:
 
-Bash
-python test_sentinel.py
-# Open analytics_dashboard.ipynb to view regional heatmaps
+SQL
+SELECT update_status, count(*) FROM ota_logs GROUP BY update_status;

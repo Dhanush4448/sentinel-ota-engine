@@ -1,7 +1,9 @@
 venv/ 
 *.csv 
-__pycache__/ 
+__pycache__/
 fleet.db
 recovery_actions_report.csv
 venv/
 __pycache__/
+cloud-sql-proxy.exe
+*.png

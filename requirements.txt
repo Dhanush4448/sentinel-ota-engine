@@ -7,3 +7,4 @@ tzdata==2025.3
 psycopg2-binary==2.9.9
 matplotlib==3.8.2
 seaborn==0.13.0
+cryptography==42.0.5

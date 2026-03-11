@@ -12,12 +12,14 @@ Resilient "Progressive Batch" Ingestion: Engineered a robust generator.py that h
 
 Automated State Recovery: A parallelized controller that performs targeted cloud updates, transitioning thousands of devices from "Partial" failure to "Recovered" status based on real-time telemetry analysis.
 
+Firmware Security Verification: Cryptographic signature verification and per-chunk integrity checks detect tampered firmware BEFORE installation. Implements RSA-PSS signatures and SHA-256 hashing to prevent man-in-the-middle attacks and malicious code injection.
+
 Strategic Cost Management: Implemented a cloud-cost optimization workflow, utilizing activation-policy management and final de-provisioning to maintain a $0.00 project footprint when idle.
 
 Tech Stack
 Cloud Infrastructure: Google Cloud Platform (GCP), Cloud SQL (PostgreSQL)
 
-Backend: Python 3.12 (psycopg2-binary, multiprocessing, Faker)
+Backend: Python 3.12 (psycopg2-binary, multiprocessing, Faker, cryptography)
 
 DevOps: GCloud CLI, Network Firewalls (Ingress/Egress rules), Environment Variable Security
 
@@ -29,6 +31,8 @@ Project Structure
 - generator.py: Batch-processes 10k synthetic telemetry records into Cloud SQL with progressive progress tracking (500-record batches).
 - recovery_engine.py: Multi-core parallel controller that shards the cloud dataset and executes high-speed recovery updates using 4 worker processes.
 - analytics_viz.py: Generates regional heatmaps and deployment success visualizations from live Cloud SQL data.
+- firmware_verifier.py: Cryptographic firmware verification module with RSA signatures and SHA-256 chunk integrity checks.
+- ota_update_pipeline.py: Secure OTA update pipeline integrating firmware verification before installation.
 
 **Local SQLite Components (Legacy/Testing):**
 - chaos_injector.py: Legacy tool for injecting test chaos scenarios into local SQLite database (fleet.db).
@@ -87,6 +91,14 @@ Run the following query in Google Cloud Query Studio or via psql to confirm reco
 ```sql
 SELECT update_status, count(*) FROM ota_logs GROUP BY update_status;
 ```
+
+**Firmware Security Verification:**
+The system includes cryptographic verification to detect tampered firmware BEFORE installation:
+```bash
+python firmware_verifier.py  # Run security tests
+python ota_update_pipeline.py  # Example secure update pipeline
+```
+See `SECURITY_FIRMWARE.md` for detailed security architecture and threat model.
 
 **Local SQLite Testing (Legacy):**
 For local testing with SQLite, use:

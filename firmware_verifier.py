@@ -327,9 +327,9 @@ if __name__ == "__main__":
     print("\n6. Testing legitimate firmware verification...")
     is_valid, errors = verifier.verify_complete_firmware(original_chunks, manifest, signature)
     if is_valid:
-        print("✓ Legitimate firmware verified successfully!")
+        print("[OK] Legitimate firmware verified successfully!")
     else:
-        print(f"✗ Verification failed: {errors}")
+        print(f"[FAIL] Verification failed: {errors}")
     
     # Test 2: Tampered chunk detection
     print("\n7. Testing tampered chunk detection...")
@@ -338,20 +338,20 @@ if __name__ == "__main__":
     
     is_valid, errors = verifier.verify_complete_firmware(tampered_chunks, manifest, signature)
     if not is_valid:
-        print("✓ Tampered chunk detected!")
+        print("[OK] Tampered chunk detected!")
         print(f"  Errors: {errors[:2]}...")  # Show first 2 errors
     else:
-        print("✗ SECURITY FAILURE: Tampered chunk not detected!")
+        print("[FAIL] SECURITY FAILURE: Tampered chunk not detected!")
     
     # Test 3: Invalid signature detection
     print("\n8. Testing invalid signature detection...")
     fake_signature = os.urandom(256)  # Random bytes
     is_valid, errors = verifier.verify_complete_firmware(original_chunks, manifest, fake_signature)
     if not is_valid:
-        print("✓ Invalid signature detected!")
+        print("[OK] Invalid signature detected!")
         print(f"  Error: {errors[0]}")
     else:
-        print("✗ SECURITY FAILURE: Invalid signature not detected!")
+        print("[FAIL] SECURITY FAILURE: Invalid signature not detected!")
     
     # Cleanup
     print("\n9. Cleaning up test files...")

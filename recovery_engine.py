@@ -10,6 +10,7 @@ def process_shard(shard_id, offset, limit):
     try:
         DB_HOST = os.getenv("DB_HOST")
         DB_PASS = os.getenv("DB_PASS")
+        DB_PORT = int(os.getenv("DB_PORT", "5432"))
         
         if not DB_HOST or not DB_PASS:
             return f"Shard {shard_id} Failed: DB_HOST and DB_PASS environment variables must be set"
@@ -17,6 +18,7 @@ def process_shard(shard_id, offset, limit):
         # Connect using the whitelisted IP and project credentials
         conn = psycopg2.connect(
             host=DB_HOST,
+            port=DB_PORT,
             database="postgres",
             user="postgres",
             password=DB_PASS,
@@ -72,6 +74,7 @@ if __name__ == "__main__":
     # Validate environment variables
     DB_HOST = os.getenv("DB_HOST")
     DB_PASS = os.getenv("DB_PASS")
+    DB_PORT = int(os.getenv("DB_PORT", "5432"))
     
     if not DB_HOST or not DB_PASS:
         print("Error: DB_HOST and DB_PASS environment variables must be set")
@@ -83,7 +86,7 @@ if __name__ == "__main__":
     shard_size = total_records // num_workers
 
     print(f"Using {num_workers} parallel workers with shard size of {shard_size}")
-    print(f"Connecting to Cloud SQL at {DB_HOST}...\n")
+    print(f"Connecting to PostgreSQL at {DB_HOST}:{DB_PORT}...\n")
 
     # Launching the parallel pool
     try:

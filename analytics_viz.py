@@ -8,12 +8,14 @@ def connect_to_cloud_sql():
     """Establish connection to Cloud SQL PostgreSQL instance"""
     DB_HOST = os.getenv("DB_HOST")
     DB_PASS = os.getenv("DB_PASS")
+    DB_PORT = int(os.getenv("DB_PORT", "5432"))
     
     if not DB_HOST or not DB_PASS:
         raise ValueError("DB_HOST and DB_PASS environment variables must be set")
     
     conn = psycopg2.connect(
         host=DB_HOST,
+        port=DB_PORT,
         database="postgres",
         user="postgres",
         password=DB_PASS
@@ -21,19 +23,20 @@ def connect_to_cloud_sql():
     return conn
 
 def generate_recovery_action_distribution(conn, output_file='recovery_action_distribution.png'):
-    """Generate recovery action distribution chart"""
+    """Generate recovery status distribution chart"""
     query = """
     SELECT update_status, COUNT(*) as count
     FROM ota_logs
-    WHERE update_status = 'Partial' OR update_status = 'Recovered'
     GROUP BY update_status
     """
     
     df = pd.read_sql_query(query, conn)
     
     plt.figure(figsize=(10, 6))
-    sns.countplot(data=df, x='update_status', hue='update_status', palette='viridis', legend=False)
-    plt.title('Fleet Recovery Status Distribution')
+    # df is already aggregated; use a simple bar chart for reliability across seaborn/matplotlib versions
+    df = df.sort_values("count", ascending=False)
+    plt.bar(df["update_status"], df["count"], color=["#3B82F6"] * len(df))
+    plt.title('Fleet Update Status Distribution')
     plt.ylabel('Number of Devices')
     plt.xlabel('Update Status')
     plt.tight_layout()

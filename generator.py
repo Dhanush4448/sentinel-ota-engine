@@ -7,18 +7,24 @@ def generate_fleet_data(num_devices=10000):
     fake = Faker()
     DB_HOST = os.getenv("DB_HOST")
     DB_PASS = os.getenv("DB_PASS")
+    DB_PORT = int(os.getenv("DB_PORT", "5432"))
     
     if not DB_HOST or not DB_PASS:
         raise ValueError("DB_HOST and DB_PASS environment variables must be set")
 
-    print(f"Connecting to Cloud SQL at {DB_HOST}...")
+    print(f"Connecting to PostgreSQL at {DB_HOST}:{DB_PORT}...")
     
     conn = None
     cursor = None
     
     try:
         conn = psycopg2.connect(
-            dsn=f"dbname='postgres' user='postgres' host='{DB_HOST}' password='{DB_PASS}' connect_timeout=10"
+            host=DB_HOST,
+            port=DB_PORT,
+            database="postgres",
+            user="postgres",
+            password=DB_PASS,
+            connect_timeout=10,
         )
         cursor = conn.cursor()
 
